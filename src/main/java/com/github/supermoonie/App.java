@@ -50,7 +50,7 @@ public class App {
             JOptionPane.showMessageDialog(null, VIDEO_PATH + " 创建失败", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         HttpClient httpClient = HttpClient.defaultInstance();
-        String indexUrl = "http://goudaitv.com/vodplay/64845-1-43.html";
+        String indexUrl = "";
         Document document = httpClient.get(indexUrl, 3, DocumentResponseHandler.getInstance()).getContent();
         String frameSrc = findFrameSrc(document);
         if (null != frameSrc) {
@@ -82,6 +82,7 @@ public class App {
         try (AutoChrome autoChrome = new AutoChrome.Builder()
 //                .setOtherArgs(Collections.singletonList("--headless"))
                 .build()) {
+            System.out.println(indexUrl);
             Todo<NavigateResult> todo = (chrome) -> chrome.navigate(indexUrl);
             RequestWillBeSentListener requestListener = new RequestWillBeSentListener("http*m3u8");
             autoChrome.waitEvent(todo, requestListener, 20_000);
@@ -108,6 +109,8 @@ public class App {
                 String src = iframe.attr("src");
                 if (isEmpty(src)) {
                     src = iframe.outerHtml();
+                } else {
+                    return src;
                 }
                 Matcher matcher = LINK_PATTERN.matcher(src);
                 if (matcher.find()) {
