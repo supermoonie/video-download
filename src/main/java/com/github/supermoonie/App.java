@@ -11,7 +11,6 @@ import com.github.supermoonie.type.network.GetResponseBodyResult;
 import com.github.supermoonie.type.page.NavigateResult;
 import net.bramp.ffmpeg.FFmpeg;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -19,8 +18,14 @@ import org.jsoup.select.Elements;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,13 +41,13 @@ public class App {
 
     private static final String USER_DIR = System.getProperty("user.dir") + File.separator;
 
-    public static final String VIDEO_PATH = USER_DIR + "video" + File.separator;
+    private static final String VIDEO_PATH = USER_DIR + "video" + File.separator;
 
     private static final Pattern NUM_PATTERN = Pattern.compile("ts-(\\d+)\\.ts");
 
     private static final Pattern LINK_PATTERN = Pattern.compile(".*(https?://[a-zA-Z0-9./]*)\".*");
 
-    private static final Pattern VIDEO_NAME_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5_a-zA-Z0-9]*).*");
+    private static final Pattern VIDEO_NAME_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5_a-zA-Z0-9\\u3002\\uff1f\\uff01\\uff0c\\u3001\\uff1b\\uff1a\\u201c\\u201d\\u2018\\u2019\\uff08\\uff09\\u300a\\u300b\\u3008\\u3009\\u3010\\u3011\\u300e\\u300f\\u300c\\u300d\\ufe43\\ufe44\\u3014\\u3015\\u2026\\u2014\\uff5e\\ufe4f\\uffe5]*).*");
 
     public static void main(String[] args) throws IOException {
         File videoDir = new File(VIDEO_PATH);
@@ -50,25 +55,37 @@ public class App {
             JOptionPane.showMessageDialog(null, VIDEO_PATH + " 创建失败", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         HttpClient httpClient = HttpClient.defaultInstance();
-        String indexUrl = "http://goudaitv.com/vodplay/64845-1-43.html";
+        String indexUrl = "http://goudaitv.com/vodplay/64845-1-38.html";
         Document document = httpClient.get(indexUrl, 3, DocumentResponseHandler.getInstance()).getContent();
         String frameSrc = findFrameSrc(document);
         if (null != frameSrc) {
             indexUrl = frameSrc;
         }
+        ExecutorService executor = Executors.newFixedThreadPool(10);
         try {
             List<String> links = m3u8Content(httpClient, indexUrl);
-            int index = 100001;
+            AtomicInteger index = new AtomicInteger(100001);
+            CountDownLatch latch = new CountDownLatch(links.size());
             for (String link : links) {
-                System.out.println("正在下载 " + link);
-                byte[] content = httpClient.get(link, 3, BytesResponseHandler.getInstance()).getContent();
-                FileUtils.writeByteArrayToFile(new File(VIDEO_PATH + "ts-" + index + ".ts"), content);
-                index++;
+                executor.submit(() -> {
+                    System.out.println("正在下载 " + link);
+                    try {
+                        byte[] content = httpClient.get(link, 3, BytesResponseHandler.getInstance()).getContent();
+                        FileUtils.writeByteArrayToFile(new File(VIDEO_PATH + "ts-" + index.getAndIncrement() + ".ts"), content);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        latch.countDown();
+                    }
+                });
             }
+            latch.await();
             concat();
             rename(document.title());
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            executor.shutdown();
         }
     }
 
