@@ -55,7 +55,7 @@ public class App {
             JOptionPane.showMessageDialog(null, VIDEO_PATH + " 创建失败", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         HttpClient httpClient = HttpClient.defaultInstance();
-        String indexUrl = "http://goudaitv.com/vodplay/64845-1-38.html";
+        String indexUrl = "";
         Document document = httpClient.get(indexUrl, 3, DocumentResponseHandler.getInstance()).getContent();
         String frameSrc = findFrameSrc(document);
         if (null != frameSrc) {
@@ -125,6 +125,8 @@ public class App {
                 String src = iframe.attr("src");
                 if (isEmpty(src)) {
                     src = iframe.outerHtml();
+                } else {
+                    return src;
                 }
                 Matcher matcher = LINK_PATTERN.matcher(src);
                 if (matcher.find()) {
