@@ -64,20 +64,22 @@ public class App {
         ExecutorService executor = Executors.newFixedThreadPool(10);
         try {
             List<String> links = m3u8Content(httpClient, indexUrl);
-            AtomicInteger index = new AtomicInteger(100001);
             CountDownLatch latch = new CountDownLatch(links.size());
+            int i = 1000000;
             for (String link : links) {
+                final int index = i;
                 executor.submit(() -> {
                     System.out.println("正在下载 " + link);
                     try {
                         byte[] content = httpClient.get(link, 3, BytesResponseHandler.getInstance()).getContent();
-                        FileUtils.writeByteArrayToFile(new File(VIDEO_PATH + "ts-" + index.getAndIncrement() + ".ts"), content);
+                        FileUtils.writeByteArrayToFile(new File(VIDEO_PATH + "ts-" + index + ".ts"), content);
                     } catch (IOException e) {
                         e.printStackTrace();
                     } finally {
                         latch.countDown();
                     }
                 });
+                i ++;
             }
             latch.await();
             concat();
