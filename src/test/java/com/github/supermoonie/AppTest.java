@@ -1,28 +1,41 @@
 package com.github.supermoonie;
 
+import com.github.supermoonie.spider.S80Spider;
+import com.github.supermoonie.spider.SpiderDispatcher;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Unit test for simple App.
  */
 public class AppTest {
 
-    /**
-     * Rigorous Test :-)
-     */
     @Test
-    public void shouldAnswerWithTrue() throws IOException {
-        String text = "<iframe id=\"fed-play-iframe\" class=\"fed-play-iframe fed-part-full\" frameborder=\"0\" scrolling=\"no\" allowfullscreen=\"true\" data-lock=\"0\" data-pass=\"0\" data-auto=\"1\" data-seek=\"0\" data-code=\"1\" data-trys=\"0\" data-advs=\"0\" data-link=\"\" data-time=\"5\" data-chat=\"0\" data-word=\"SZk\" data-stat=\"1\" data-pars=\"/template/vfed/asset/fed/player.php?id=peer&amp;url=\" data-play=\"https://cn3.download05.com/hls/20190805/97e745627c1b982a1dbf0cd34bff224b/1565009347/index.m3u8\" data-next=\"\"></iframe>";
-        Matcher matcher = Pattern.compile(".*(https?://[a-zA-Z0-9./]*)\".*").matcher(text);
-        if (matcher.find()) {
-            System.out.println(matcher.group(1));
+    public void dispatcher() throws Exception {
+        SpiderDispatcher dispatcher = new SpiderDispatcher();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        List<String> links = new ArrayList<String>(){{
+            add("http://www.8080s.net/ju/35460/play-377976");
+            add("http://www.8080s.net/ju/35460/play-377977");
+            add("http://www.8080s.net/ju/35460/play-378174");
+            add("http://www.8080s.net/ju/35460/play-378175");
+            add("http://www.8080s.net/ju/35460/play-378721");
+            add("http://www.8080s.net/ju/35460/play-378722");
+            add("http://www.8080s.net/ju/35460/play-378723");
+            add("http://www.8080s.net/ju/35460/play-378726");
+            add("http://www.8080s.net/ju/35460/play-378719");
+            add("http://www.8080s.net/ju/35460/play-378720");
+            add("http://www.8080s.net/ju/35460/play-378724");
+            add("http://www.8080s.net/ju/35460/play-378725");
+        }};
+        for (int i = 0; i <= links.size(); i++) {
+            S80Spider s80Spider = new S80Spider(links.get(i), "三生三世枕上书-" + (i + 31) + ".mp4", executorService);
+            dispatcher.execute(s80Spider);
         }
-        assertTrue(true);
+        executorService.shutdown();
     }
 }
